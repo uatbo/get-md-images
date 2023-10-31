@@ -22,8 +22,11 @@ func main() {
 	// 编译正则表达式
 	regexpObject := regexp.MustCompile(pattern)
 	// 查找匹配
+	// 匹配图像标签
 	matches := regexpObject.FindAllString(text, -1)
+	//匹配图像标签的下标
 
+	// 安装匹配中的内容查找并下载图片
 	for i := 0; i < len(matches); i++ {
 		fmt.Println(matches[i])
 	}

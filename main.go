@@ -78,6 +78,7 @@ func main() {
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 const prefix = "images/"
 
+// 生成长度为n的随机字符串
 func randomString(n int) string {
 	sb := strings.Builder{}
 	sb.Grow(n)
@@ -147,7 +148,7 @@ func NewSubString(subString string, url string) string {
 // AlterString 替换字符串中的链接
 func AlterString(str *string, subString string, subStringIndex []int) *string {
 
-	newText := (*str)[0:subStringIndex[0]] + subString + (*str)[subStringIndex[1]:len(*str)-1]
+	newText := (*str)[0:subStringIndex[0]] + subString + (*str)[subStringIndex[1]:len(*str)]
 	return &newText
 }
 

@@ -1,19 +1,23 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/gabriel-vasile/mimetype"
 	"io"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
+// 指定文本文件路径
+var filePath string
+
 func main() {
-	// 指定文本文件路径
-	filePath := "/Users/uatbo/Files/大兵/笔记/增量表与全量表的区别.md"
+	// 读取文件路径
+	filePath = "/Users/uatbo/Files/大兵/笔记/增量表与全量表的区别.md"
 
 	// 读取文本文件
 	content, err := os.ReadFile(filePath)
@@ -66,8 +70,9 @@ func main() {
 		}
 	}
 
+	filePath = "./tmp.md"
 	// 写入文件
-	fmt.Println(*newText)
+	WriteStringToFile(*newText, filePath)
 }
 
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -84,25 +89,44 @@ func randomString(n int) string {
 
 // DownloadImage 下载图片存储到当前目录下images目录，返回相对路径
 func DownloadImage(url string) string {
+	// 请求图片，获取http报文
 	response, err := http.Get(url)
 	if err != nil {
 		return ""
 	}
 	defer response.Body.Close()
 
-	mt, err := mimetype.DetectReader(response.Body)
+	// 获取图片类型
+	//mt, err := mimetype.DetectReader(response.Body)
+	//if err != nil {
+	//	return ""
+	//}
+
+	// 定义图片存储路径
+	//filename := filepath.Dir(filePath) + "/" + prefix + randomString(5) + ".png" // mt.Extension()
+	filename := "./" + prefix + randomString(5) + ".png" // mt.Extension()
+	fmt.Println(filename)
+	dirPath := filepath.Dir(filename) // 提取目录路径
+
+	// 递归创建目录
+	err = os.MkdirAll(dirPath, os.ModePerm)
 	if err != nil {
+		fmt.Println("创建目录时出错:", err)
 		return ""
 	}
-	filename := prefix + randomString(5) + mt.String()
 
+	// 写入文件
 	file, err := os.Create(filename)
 	if err != nil {
+		fmt.Println("创建文件时出错:", err)
 		return ""
 	}
 	defer file.Close()
 
-	_, err = io.Copy(file, response.Body)
+	writer := bufio.NewWriter(file)
+	reader := bufio.NewReader(response.Body)
+
+	_, err = io.Copy(writer, reader)
 	if err != nil {
 		return ""
 	}
@@ -125,4 +149,20 @@ func AlterString(str *string, subString string, subStringIndex []int) *string {
 
 	newText := (*str)[0:subStringIndex[0]] + subString + (*str)[subStringIndex[1]:len(*str)-1]
 	return &newText
+}
+
+// WriteStringToFile 将字符串写入文本文件函数
+func WriteStringToFile(text string, path string) {
+	// 打开文件以进行写入，如果文件不存在会创建文件
+	file, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// 将字符串写入文件
+	_, err = file.WriteString(text)
+	if err != nil {
+		panic(err)
+	}
 }

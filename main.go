@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
+	"github.com/gabriel-vasile/mimetype"
 	"io"
 	"math/rand"
 	"net/http"
@@ -97,15 +98,22 @@ func DownloadImage(url string) string {
 	}
 	defer response.Body.Close()
 
+	// 将body的内容缓存下来
+	var bodyBuffer bytes.Buffer
+	_, copyErr := io.Copy(&bodyBuffer, response.Body)
+	if copyErr != nil {
+		// 处理错误
+	}
+
 	// 获取图片类型
-	//mt, err := mimetype.DetectReader(response.Body)
-	//if err != nil {
-	//	return ""
-	//}
+	mt, err := mimetype.DetectReader(&bodyBuffer)
+	if err != nil {
+		return ""
+	}
 
 	// 定义图片存储路径
 	//filename := filepath.Dir(filePath) + "/" + prefix + randomString(5) + ".png" // mt.Extension()
-	filename := "./" + prefix + randomString(5) + ".png" // mt.Extension()
+	filename := "./" + prefix + randomString(5) + mt.Extension()
 	fmt.Println(filename)
 	dirPath := filepath.Dir(filename) // 提取目录路径
 
@@ -124,10 +132,12 @@ func DownloadImage(url string) string {
 	}
 	defer file.Close()
 
-	writer := bufio.NewWriter(file)
-	reader := bufio.NewReader(response.Body)
+	//writer := bufio.NewWriter(file)
+	//reader := bufio.NewReader(&bodyBuffer)
 
-	_, err = io.Copy(writer, reader)
+	bodyBuffer.Reset()
+	_, err = io.Copy(file, &bodyBuffer)
+	//_, err = io.Copy(writer, reader)
 	if err != nil {
 		return ""
 	}

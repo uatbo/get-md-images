@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 )
 
 // 指定文本文件路径
@@ -18,7 +19,10 @@ var filePath string
 
 func main() {
 	// 读取文件路径
-	filePath = "/Users/uatbo/Files/大兵/笔记/增量表与全量表的区别.md"
+	//filePath = "/Users/uatbo/Files/大兵/笔记/增量表与全量表的区别.md"
+
+	args := os.Args
+	filePath = args[1]
 
 	// 读取文本文件
 	content, err := os.ReadFile(filePath)
@@ -71,12 +75,12 @@ func main() {
 		}
 	}
 
-	filePath = "./tmp.md"
+	filePath = filepath.Dir(filePath) + "/tmp.md"
 	// 写入文件
 	WriteStringToFile(*newText, filePath)
 }
 
-const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const charset = "abcdefghijklmnopqrstuvwxyz"
 const prefix = "images/"
 
 // 生成长度为n的随机字符串
@@ -89,6 +93,15 @@ func randomString(n int) string {
 	return sb.String()
 }
 
+func getTime() string {
+	currentTime := time.Now()
+	// 自定义时间格式化字符串
+	timeFormat := "200601021504"
+	// 使用时间格式化字符串格式化时间
+	formattedTime := currentTime.Format(timeFormat)
+	return formattedTime
+}
+
 // DownloadImage 下载图片存储到当前目录下images目录，返回相对路径
 func DownloadImage(url string) string {
 	// 请求图片，获取http报文
@@ -98,24 +111,20 @@ func DownloadImage(url string) string {
 	}
 	defer response.Body.Close()
 
-	// 将body的内容缓存下来
-	var bodyBuffer bytes.Buffer
-	_, copyErr := io.Copy(&bodyBuffer, response.Body)
-	if copyErr != nil {
-		// 处理错误
-	}
-
 	// 获取图片类型
-	mt, err := mimetype.DetectReader(&bodyBuffer)
+	res, _ := io.ReadAll(response.Body) // 将body内容转为字节串
+	mt := mimetype.Detect(res)
 	if err != nil {
 		return ""
 	}
+	// 字节串写回body，后续写入图片文件需要
+	response.Body = io.NopCloser(bytes.NewReader(res))
 
 	// 定义图片存储路径
-	//filename := filepath.Dir(filePath) + "/" + prefix + randomString(5) + ".png" // mt.Extension()
-	filename := "./" + prefix + randomString(5) + mt.Extension()
-	fmt.Println(filename)
-	dirPath := filepath.Dir(filename) // 提取目录路径
+	filename := prefix + randomString(3) + getTime() + mt.Extension()
+	filedir := filepath.Dir(filePath) + "/" + filename
+	fmt.Println(filedir)
+	dirPath := filepath.Dir(filedir) // 提取目录路径
 
 	// 递归创建目录
 	err = os.MkdirAll(dirPath, os.ModePerm)
@@ -125,19 +134,14 @@ func DownloadImage(url string) string {
 	}
 
 	// 写入文件
-	file, err := os.Create(filename)
+	file, err := os.Create(filedir)
 	if err != nil {
 		fmt.Println("创建文件时出错:", err)
 		return ""
 	}
 	defer file.Close()
 
-	//writer := bufio.NewWriter(file)
-	//reader := bufio.NewReader(&bodyBuffer)
-
-	bodyBuffer.Reset()
-	_, err = io.Copy(file, &bodyBuffer)
-	//_, err = io.Copy(writer, reader)
+	_, err = io.Copy(file, response.Body)
 	if err != nil {
 		return ""
 	}
